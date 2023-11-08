@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract HensHouseToken is ERC20, Ownable {
+    uint256 private constant _totalSupply = 50000000000 * 10**18; // 50 billion tokens with 18 decimal places
+    uint256 private constant _burnRate = 5; // 0.005% burn rate
+    address private mainAccount;
+
+    constructor() ERC20("HensHouseToken", "HENS") {
+        _mint(msg.sender, _totalSupply);
+        mainAccount = msg.sender;
+    }
+
+    // Transfer function with automatic burning and sending to the main account
+    function transfer(address recipient, uint256 amount) public override returns (bool) {
+        uint256 burnAmount = (amount * _burnRate) / 10000;
+        uint256 sendToMainAmount = (amount * _burnRate) / 10000;
+        uint256 sendAmount = amount - burnAmount - sendToMainAmount;
+
+        // Ensure sender has enough balance to make the transfer
+        require(balanceOf(msg.sender) >= amount, "Insufficient balance");
+
+        // Burn tokens
+        _burn(msg.sender, burnAmount);
+
+        // Send tokens to the main account
+        _transfer(msg.sender, mainAccount, sendToMainAmount);
+
+        // Transfer remaining tokens
+        _transfer(msg.sender, recipient, sendAmount);
+
+        return true;
+    }
+}
